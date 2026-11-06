@@ -1,0 +1,1004 @@
+<!DOCTYPE html>
+<html lang="ru" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HealthPulse — Твой Трекер Здоровья</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#ecfdf5',
+                            100: '#d1fae5',
+                            500: '#10b981',
+                            600: '#059669',
+                            700: '#047857',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .glass {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+        .dark .glass {
+            background: rgba(17, 24, 39, 0.75);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #10b98155; border-radius: 9999px; }
+        ::-webkit-scrollbar-thumb:hover { background: #10b98188; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 dark:bg-slate-950 dark:text-slate-100 transition-colors duration-300 min-h-screen pb-20 md:pb-6">
+
+    <div class="flex flex-col md:flex-row min-h-screen">
+        
+        <!-- Sidebar Navigation (Desktop) -->
+        <aside class="hidden md:flex flex-col w-64 p-5 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 sticky top-0 h-screen justify-between z-30">
+            <div>
+                <div class="flex items-center gap-3 px-2 mb-8">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-white shadow-lg shadow-emerald-500/20">
+                        <i data-lucide="activity" class="w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <h1 class="font-bold text-lg leading-none tracking-tight">HealthPulse</h1>
+                        <span class="text-xs text-emerald-500 font-medium">Трекер Здоровья</span>
+                    </div>
+                </div>
+
+                <nav class="space-y-1.5">
+                    <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-btn active flex items-center gap-3 w-full px-4 py-3 rounded-xl font-medium text-sm transition-all bg-emerald-50 text-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-400">
+                        <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+                        Дашборд
+                    </button>
+                    <button onclick="switchTab('water')" id="nav-water" class="nav-btn flex items-center gap-3 w-full px-4 py-3 rounded-xl font-medium text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all">
+                        <i data-lucide="droplet" class="w-5 h-5"></i>
+                        Вода
+                    </button>
+                    <button onclick="switchTab('activity')" id="nav-activity" class="nav-btn flex items-center gap-3 w-full px-4 py-3 rounded-xl font-medium text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all">
+                        <i data-lucide="flame" class="w-5 h-5"></i>
+                        Активность
+                    </button>
+                    <button onclick="switchTab('sleep')" id="nav-sleep" class="nav-btn flex items-center gap-3 w-full px-4 py-3 rounded-xl font-medium text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all">
+                        <i data-lucide="moon" class="w-5 h-5"></i>
+                        Сон
+                    </button>
+                    <button onclick="switchTab('mood')" id="nav-mood" class="nav-btn flex items-center gap-3 w-full px-4 py-3 rounded-xl font-medium text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all">
+                        <i data-lucide="smile" class="w-5 h-5"></i>
+                        Настроение
+                    </button>
+                    <button onclick="switchTab('nutrition')" id="nav-nutrition" class="nav-btn flex items-center gap-3 w-full px-4 py-3 rounded-xl font-medium text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all">
+                        <i data-lucide="utensils" class="w-5 h-5"></i>
+                        Питание
+                    </button>
+                </nav>
+            </div>
+
+            <!-- Sidebar Footer Controls -->
+            <div class="pt-4 border-t border-slate-200 dark:border-slate-800 space-y-3">
+                <button id="themeToggle" class="flex items-center justify-between w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+                    <span class="flex items-center gap-2">
+                        <i data-lucide="sun" class="w-4 h-4 hidden dark:inline"></i>
+                        <i data-lucide="moon" class="w-4 h-4 inline dark:hidden"></i>
+                        <span id="themeText">Светлая тема</span>
+                    </span>
+                </button>
+
+                <button onclick="resetData()" class="flex items-center gap-2 w-full px-4 py-2.5 rounded-xl text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 text-xs font-medium transition">
+                    <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+                    Сбросить данные дня
+                </button>
+            </div>
+        </aside>
+
+        <!-- Mobile Sticky Bottom Navigation -->
+        <nav class="md:hidden fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-slate-900/90 backdrop-blur-lg border-t border-slate-200 dark:border-slate-800 flex justify-around p-2 z-40">
+            <button onclick="switchTab('dashboard')" class="mobile-nav-btn active flex flex-col items-center p-2 text-emerald-500">
+                <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+                <span class="text-[10px] mt-1 font-medium">Дашборд</span>
+            </button>
+            <button onclick="switchTab('water')" class="mobile-nav-btn flex flex-col items-center p-2 text-slate-400">
+                <i data-lucide="droplet" class="w-5 h-5"></i>
+                <span class="text-[10px] mt-1 font-medium">Вода</span>
+            </button>
+            <button onclick="switchTab('activity')" class="mobile-nav-btn flex flex-col items-center p-2 text-slate-400">
+                <i data-lucide="flame" class="w-5 h-5"></i>
+                <span class="text-[10px] mt-1 font-medium">Спорт</span>
+            </button>
+            <button onclick="switchTab('sleep')" class="mobile-nav-btn flex flex-col items-center p-2 text-slate-400">
+                <i data-lucide="moon" class="w-5 h-5"></i>
+                <span class="text-[10px] mt-1 font-medium">Сон</span>
+            </button>
+            <button onclick="switchTab('mood')" class="mobile-nav-btn flex flex-col items-center p-2 text-slate-400">
+                <i data-lucide="smile" class="w-5 h-5"></i>
+                <span class="text-[10px] mt-1 font-medium">Эмоции</span>
+            </button>
+            <button onclick="switchTab('nutrition')" class="mobile-nav-btn flex flex-col items-center p-2 text-slate-400">
+                <i data-lucide="utensils" class="w-5 h-5"></i>
+                <span class="text-[10px] mt-1 font-medium">Еда</span>
+            </button>
+        </nav>
+
+        <!-- Main Content Area -->
+        <main class="flex-1 p-4 md:p-8 max-w-7xl mx-auto w-full">
+            
+            <!-- Top Mobile Header -->
+            <header class="flex md:hidden items-center justify-between mb-6 pb-4 border-b border-slate-200 dark:border-slate-800">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-white shadow-md">
+                        <i data-lucide="activity" class="w-5 h-5"></i>
+                    </div>
+                    <span class="font-bold text-lg">HealthPulse</span>
+                </div>
+                <button id="themeToggleMobile" class="p-2 rounded-lg bg-slate-100 dark:bg-slate-800">
+                    <i data-lucide="sun" class="w-5 h-5 hidden dark:inline"></i>
+                    <i data-lucide="moon" class="w-5 h-5 inline dark:hidden"></i>
+                </button>
+            </header>
+
+            <!-- Motivational Banner -->
+            <div class="relative overflow-hidden rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-600 text-white p-6 mb-8 shadow-xl shadow-emerald-500/10">
+                <div class="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                    <div>
+                        <div class="flex items-center gap-2 mb-2">
+                            <span class="px-2.5 py-0.5 rounded-full bg-white/20 text-xs font-semibold backdrop-blur-md">Цитата дня</span>
+                            <span id="streakBadge" class="flex items-center gap-1 text-xs font-bold bg-amber-400/90 text-amber-950 px-2.5 py-0.5 rounded-full">
+                                <i data-lucide="zap" class="w-3 h-3 fill-current"></i> <span id="streakCount">1</span> день подряд
+                            </span>
+                        </div>
+                        <p id="quoteText" class="text-base md:text-lg font-medium italic opacity-95">"Забота о здоровье — это не одноразовое действие, а ежедневная привычка."</p>
+                    </div>
+                    <div class="text-xs text-right opacity-80 whitespace-nowrap" id="currentDateDisplay"></div>
+                </div>
+                <!-- Background decorative elements -->
+                <div class="absolute -right-8 -bottom-10 w-40 h-40 bg-white/10 rounded-full blur-2xl"></div>
+            </div>
+
+            <!-- SECTION: DASHBOARD -->
+            <section id="section-dashboard" class="space-y-6">
+                <!-- Summary Cards Row -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <!-- Water Summary -->
+                    <div class="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md transition">
+                        <div class="flex justify-between items-start mb-3">
+                            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Вода</span>
+                            <div class="p-2 rounded-xl bg-blue-50 dark:bg-blue-950/50 text-blue-500">
+                                <i data-lucide="droplets" class="w-5 h-5"></i>
+                            </div>
+                        </div>
+                        <div class="flex items-baseline justify-between">
+                            <span class="text-2xl font-bold" id="dashWaterVal">0 / 2000 ml</span>
+                            <span class="text-xs font-semibold text-blue-500" id="dashWaterPct">0%</span>
+                        </div>
+                        <div class="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2 mt-3 overflow-hidden">
+                            <div id="dashWaterBar" class="bg-blue-500 h-2 rounded-full transition-all duration-500" style="width: 0%"></div>
+                        </div>
+                    </div>
+
+                    <!-- Calories Burned -->
+                    <div class="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md transition">
+                        <div class="flex justify-between items-start mb-3">
+                            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Активность</span>
+                            <div class="p-2 rounded-xl bg-orange-50 dark:bg-orange-950/50 text-orange-500">
+                                <i data-lucide="flame" class="w-5 h-5"></i>
+                            </div>
+                        </div>
+                        <div class="flex items-baseline justify-between">
+                            <span class="text-2xl font-bold" id="dashBurnedVal">0 ккал</span>
+                            <span class="text-xs font-medium text-slate-400" id="dashActivityCount">0 тренировок</span>
+                        </div>
+                        <p class="text-xs text-slate-400 mt-3 flex items-center gap-1">
+                            <i data-lucide="trending-up" class="w-3.5 h-3.5 text-emerald-500"></i> Сожжено за сегодня
+                        </p>
+                    </div>
+
+                    <!-- Sleep Summary -->
+                    <div class="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md transition">
+                        <div class="flex justify-between items-start mb-3">
+                            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Сон</span>
+                            <div class="p-2 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-500">
+                                <i data-lucide="moon" class="w-5 h-5"></i>
+                            </div>
+                        </div>
+                        <div class="flex items-baseline justify-between">
+                            <span class="text-2xl font-bold" id="dashSleepVal">0 ч</span>
+                            <span class="text-xs font-medium px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-950 text-indigo-500" id="dashSleepQuality">Нет данных</span>
+                        </div>
+                        <p class="text-xs text-slate-400 mt-3">Рекомендуется 7-9 часов</p>
+                    </div>
+
+                    <!-- Calories Consumed -->
+                    <div class="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md transition">
+                        <div class="flex justify-between items-start mb-3">
+                            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Калории (Еда)</span>
+                            <div class="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-500">
+                                <i data-lucide="utensils" class="w-5 h-5"></i>
+                            </div>
+                        </div>
+                        <div class="flex items-baseline justify-between">
+                            <span class="text-2xl font-bold" id="dashCaloriesIn">0 ккал</span>
+                            <span class="text-xs font-medium text-slate-400" id="dashNetCalories">Баланс: 0</span>
+                        </div>
+                        <p class="text-xs text-slate-400 mt-3">Сумма всех приемов пищи</p>
+                    </div>
+                </div>
+
+                <!-- Main Chart & Quick Stats Section -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="lg:col-span-2 p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm">
+                        <div class="flex items-center justify-between mb-4">
+                            <div>
+                                <h3 class="font-bold text-lg">Аналитика недели</h3>
+                                <p class="text-xs text-slate-400">Статистика активности и потребления воды</p>
+                            </div>
+                            <select id="chartTypeSelect" onchange="renderChart()" class="text-xs bg-slate-100 dark:bg-slate-800 border-none rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-emerald-500 outline-none">
+                                <option value="water">Вода (мл)</option>
+                                <option value="calories">Калории (ккал)</option>
+                            </select>
+                        </div>
+                        <div class="h-64 relative">
+                            <canvas id="weeklyChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Mood & Energy Widget -->
+                    <div class="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="font-bold text-lg">Состояние сегодня</h3>
+                                <i data-lucide="heart" class="w-5 h-5 text-rose-500"></i>
+                            </div>
+                            <div class="space-y-4">
+                                <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 flex items-center justify-between">
+                                    <span class="text-sm font-medium">Настроение:</span>
+                                    <span id="dashMoodDisplay" class="text-2xl">😐 Нейтральное</span>
+                                </div>
+                                <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50">
+                                    <div class="flex justify-between text-sm font-medium mb-2">
+                                        <span>Уровень энергии:</span>
+                                        <span id="dashEnergyVal" class="text-emerald-500 font-bold">5/10</span>
+                                    </div>
+                                    <div class="w-full bg-slate-200 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
+                                        <div id="dashEnergyBar" class="bg-emerald-500 h-full rounded-full transition-all duration-300" style="width: 50%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <button onclick="switchTab('mood')" class="w-full mt-4 py-2.5 rounded-xl border border-emerald-500 text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 text-xs font-semibold transition">
+                            Обновить настроение
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION: WATER TRACKER -->
+            <section id="section-water" class="space-y-6 hidden">
+                <div class="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm">
+                    <h2 class="text-xl font-bold mb-1">Трекер питьевого режима</h2>
+                    <p class="text-xs text-slate-400 mb-6">Поддерживайте оптимальный водный баланс в течение дня</p>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+                        <div class="flex flex-col items-center justify-center p-6 bg-blue-50/50 dark:bg-blue-950/20 rounded-2xl border border-blue-100 dark:border-blue-900/30">
+                            <!-- Circular Progress Container -->
+                            <div class="relative w-48 h-48 flex items-center justify-center">
+                                <svg class="w-full h-full transform -rotate-90">
+                                    <circle cx="96" cy="96" r="80" stroke="currentColor" stroke-width="14" class="text-blue-100 dark:text-blue-900/40" fill="transparent"/>
+                                    <circle id="waterSvgCircle" cx="96" cy="96" r="80" stroke="currentColor" stroke-width="14" stroke-linecap="round" class="text-blue-500 transition-all duration-700" fill="transparent" stroke-dasharray="502" stroke-dashoffset="502"/>
+                                </svg>
+                                <div class="absolute flex flex-col items-center">
+                                    <i data-lucide="droplet" class="w-8 h-8 text-blue-500 mb-1 animate-bounce"></i>
+                                    <span id="waterCurrentText" class="text-3xl font-bold">0</span>
+                                    <span id="waterGoalText" class="text-xs text-slate-400">из 2000 мл</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="space-y-5">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-500 uppercase mb-2">Дневная цель (мл)</label>
+                                <div class="flex gap-2">
+                                    <input type="number" id="waterGoalInput" value="2000" step="100" class="flex-1 px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 border-none text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                                    <button onclick="updateWaterGoal()" class="px-4 py-2 bg-slate-800 text-white dark:bg-slate-700 rounded-xl text-xs font-semibold hover:bg-slate-700 transition">Сохранить</button>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-500 uppercase mb-2">Быстрое добавление</label>
+                                <div class="grid grid-cols-3 gap-3">
+                                    <button onclick="addWater(250)" class="flex flex-col items-center justify-center p-3 rounded-xl border border-blue-200 dark:border-blue-800 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition text-blue-600 dark:text-blue-400">
+                                        <i data-lucide="glass-water" class="w-5 h-5 mb-1"></i>
+                                        <span class="text-xs font-bold">+250 мл</span>
+                                        <span class="text-[10px] opacity-70">Стакан</span>
+                                    </button>
+                                    <button onclick="addWater(500)" class="flex flex-col items-center justify-center p-3 rounded-xl border border-blue-200 dark:border-blue-800 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition text-blue-600 dark:text-blue-400">
+                                        <i data-lucide="cup-soda" class="w-5 h-5 mb-1"></i>
+                                        <span class="text-xs font-bold">+500 мл</span>
+                                        <span class="text-[10px] opacity-70">Бутылка</span>
+                                    </button>
+                                    <button onclick="addWater(750)" class="flex flex-col items-center justify-center p-3 rounded-xl border border-blue-200 dark:border-blue-800 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition text-blue-600 dark:text-blue-400">
+                                        <i data-lucide="container" class="w-5 h-5 mb-1"></i>
+                                        <span class="text-xs font-bold">+750 мл</span>
+                                        <span class="text-[10px] opacity-70">Спорт-фляга</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="pt-2">
+                                <label class="block text-xs font-semibold text-slate-500 uppercase mb-2">Своё количество</label>
+                                <div class="flex gap-2">
+                                    <input type="number" id="customWaterInput" placeholder="Мл (например 150)" class="flex-1 px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 border-none text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                                    <button onclick="addCustomWater()" class="px-5 py-2 bg-blue-500 text-white rounded-xl text-xs font-semibold hover:bg-blue-600 transition">Добавить</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION: ACTIVITY / WORKOUT -->
+            <section id="section-activity" class="space-y-6 hidden">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Activity Form -->
+                    <div class="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm">
+                        <h2 class="text-xl font-bold mb-1">Добавить активность</h2>
+                        <p class="text-xs text-slate-400 mb-6">Записывайте тренировки и движение</p>
+
+                        <form id="activityForm" onsubmit="logActivity(event)" class="space-y-4">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Тип активности</label>
+                                <select id="activityType" class="w-full px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 border-none text-sm focus:ring-2 focus:ring-emerald-500 outline-none">
+                                    <option value="Walking">Ходьба (прогулка)</option>
+                                    <option value="Running">Бег</option>
+                                    <option value="Cycling">Велосипед</option>
+                                    <option value="Gym">Силовая тренировка</option>
+                                    <option value="Yoga">Йога / Растяжка</option>
+                                    <option value="Swimming">Плавание</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Длительность (минут)</label>
+                                <input type="number" id="activityDuration" min="1" placeholder="30" required class="w-full px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 border-none text-sm focus:ring-2 focus:ring-emerald-500 outline-none">
+                            </div>
+
+                            <button type="submit" class="w-full py-3 bg-emerald-500 text-white rounded-xl text-sm font-semibold hover:bg-emerald-600 transition shadow-lg shadow-emerald-500/20">
+                                Записать активность
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Activity Log List -->
+                    <div class="lg:col-span-2 p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm">
+                        <h2 class="text-xl font-bold mb-1">Лог тренировок за сегодня</h2>
+                        <p class="text-xs text-slate-400 mb-4">Список выполненных упражнений</p>
+
+                        <div id="activityList" class="space-y-3 max-h-96 overflow-y-auto pr-1">
+                            <!-- Items injected via JS -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION: SLEEP TRACKER -->
+            <section id="section-sleep" class="space-y-6 hidden">
+                <div class="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm">
+                    <h2 class="text-xl font-bold mb-1">Мониторинг сна</h2>
+                    <p class="text-xs text-slate-400 mb-6">Качество сна напрямую влияет на здоровье и восстанавливаемость</p>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <form onsubmit="saveSleep(event)" class="space-y-4">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Продолжительность сна (часы)</label>
+                                <input type="number" id="sleepHoursInput" step="0.5" min="0" max="24" placeholder="7.5" required class="w-full px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 border-none text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Качество сна</label>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <label class="cursor-pointer">
+                                        <input type="radio" name="sleepQuality" value="Отличное" class="peer hidden" checked>
+                                        <div class="p-3 rounded-xl border border-slate-200 dark:border-slate-800 text-center peer-checked:bg-indigo-500 peer-checked:text-white peer-checked:border-indigo-500 transition text-sm">
+                                            🌟 Отличное
+                                        </div>
+                                    </label>
+                                    <label class="cursor-pointer">
+                                        <input type="radio" name="sleepQuality" value="Хорошее" class="peer hidden">
+                                        <div class="p-3 rounded-xl border border-slate-200 dark:border-slate-800 text-center peer-checked:bg-indigo-500 peer-checked:text-white peer-checked:border-indigo-500 transition text-sm">
+                                            😊 Хорошее
+                                        </div>
+                                    </label>
+                                    <label class="cursor-pointer">
+                                        <input type="radio" name="sleepQuality" value="Среднее" class="peer hidden">
+                                        <div class="p-3 rounded-xl border border-slate-200 dark:border-slate-800 text-center peer-checked:bg-indigo-500 peer-checked:text-white peer-checked:border-indigo-500 transition text-sm">
+                                            😐 Среднее
+                                        </div>
+                                    </label>
+                                    <label class="cursor-pointer">
+                                        <input type="radio" name="sleepQuality" value="Плохое" class="peer hidden">
+                                        <div class="p-3 rounded-xl border border-slate-200 dark:border-slate-800 text-center peer-checked:bg-indigo-500 peer-checked:text-white peer-checked:border-indigo-500 transition text-sm">
+                                            🥱 Плохое
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="w-full py-3 bg-indigo-500 text-white rounded-xl text-sm font-semibold hover:bg-indigo-600 transition shadow-lg shadow-indigo-500/20">
+                                Сохранить данные сна
+                            </button>
+                        </form>
+
+                        <div class="p-6 bg-indigo-50/50 dark:bg-indigo-950/20 rounded-2xl border border-indigo-100 dark:border-indigo-900/30 flex flex-col justify-center items-center text-center">
+                            <div class="w-16 h-16 rounded-2xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center mb-4">
+                                <i data-lucide="moon" class="w-8 h-8"></i>
+                            </div>
+                            <h3 class="text-2xl font-bold mb-1" id="sleepDisplayVal">0 часов</h3>
+                            <p class="text-xs text-indigo-600 dark:text-indigo-400 font-semibold mb-4" id="sleepQualityDisplay">Качество: --</p>
+                            <p class="text-xs text-slate-500 max-w-xs">
+                                Здоровый сон повышает иммунитет, улучшает память и ускоряет процесс восстановления организма.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION: MOOD & ENERGY TRACKER -->
+            <section id="section-mood" class="space-y-6 hidden">
+                <div class="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm">
+                    <h2 class="text-xl font-bold mb-1">Настроение и Энергия</h2>
+                    <p class="text-xs text-slate-400 mb-6">Отслеживайте ментальное и эмоциональное состояние</p>
+
+                    <div class="space-y-6 max-w-2xl">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-500 uppercase mb-3">Выберите текущее настроение</label>
+                            <div class="grid grid-cols-5 gap-2" id="moodSelector">
+                                <button onclick="selectMood('🤩 Вдоховенное')" class="mood-option p-4 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col items-center hover:bg-slate-50 dark:hover:bg-slate-800 transition">
+                                    <span class="text-2xl mb-1">🤩</span>
+                                    <span class="text-[10px] font-medium">Отличное</span>
+                                </button>
+                                <button onclick="selectMood('😊 Счастливое')" class="mood-option p-4 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col items-center hover:bg-slate-50 dark:hover:bg-slate-800 transition">
+                                    <span class="text-2xl mb-1">😊</span>
+                                    <span class="text-[10px] font-medium">Хорошее</span>
+                                </button>
+                                <button onclick="selectMood('😐 Спокойное')" class="mood-option p-4 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col items-center hover:bg-slate-50 dark:hover:bg-slate-800 transition">
+                                    <span class="text-2xl mb-1">😐</span>
+                                    <span class="text-[10px] font-medium">Норма</span>
+                                </button>
+                                <button onclick="selectMood('🥱 Уставшее')" class="mood-option p-4 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col items-center hover:bg-slate-50 dark:hover:bg-slate-800 transition">
+                                    <span class="text-2xl mb-1">🥱</span>
+                                    <span class="text-[10px] font-medium">Усталость</span>
+                                </button>
+                                <button onclick="selectMood('😤 Тревожное')" class="mood-option p-4 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col items-center hover:bg-slate-50 dark:hover:bg-slate-800 transition">
+                                    <span class="text-2xl mb-1">😤</span>
+                                    <span class="text-[10px] font-medium">Стресс</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between items-center mb-2">
+                                <label class="text-xs font-semibold text-slate-500 uppercase">Уровень энергии (1-10)</label>
+                                <span id="energyRangeVal" class="text-sm font-bold text-emerald-500">5</span>
+                            </div>
+                            <input type="range" id="energyRange" min="1" max="10" value="5" oninput="updateEnergySlider(this.value)" class="w-full accent-emerald-500 cursor-pointer">
+                        </div>
+
+                        <button onclick="saveMoodAndEnergy()" class="w-full py-3 bg-emerald-500 text-white rounded-xl text-sm font-semibold hover:bg-emerald-600 transition shadow-lg shadow-emerald-500/20">
+                            Сохранить состояние
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION: NUTRITION / MEALS -->
+            <section id="section-nutrition" class="space-y-6 hidden">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm">
+                        <h2 class="text-xl font-bold mb-1">Добавить прием пищи</h2>
+                        <p class="text-xs text-slate-400 mb-6">Дневник калорийности продуктов</p>
+
+                        <form onsubmit="logMeal(event)" class="space-y-4">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Прием пищи</label>
+                                <select id="mealType" class="w-full px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 border-none text-sm focus:ring-2 focus:ring-emerald-500 outline-none">
+                                    <option value="Завтрак">🍳 Завтрак</option>
+                                    <option value="Обед">🥗 Обед</option>
+                                    <option value="Ужин">🍲 Ужин</option>
+                                    <option value="Перекус">🍎 Перекус</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Название блюда</label>
+                                <input type="text" id="mealName" placeholder="Овсянка с ягодами" required class="w-full px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 border-none text-sm focus:ring-2 focus:ring-emerald-500 outline-none">
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Калории (ккал)</label>
+                                <input type="number" id="mealCalories" placeholder="350" min="0" required class="w-full px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 border-none text-sm focus:ring-2 focus:ring-emerald-500 outline-none">
+                            </div>
+
+                            <button type="submit" class="w-full py-3 bg-emerald-500 text-white rounded-xl text-sm font-semibold hover:bg-emerald-600 transition shadow-lg shadow-emerald-500/20">
+                                Сохранить в дневник
+                            </button>
+                        </form>
+                    </div>
+
+                    <div class="lg:col-span-2 p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm">
+                        <h2 class="text-xl font-bold mb-1">Дневник питания за сегодня</h2>
+                        <p class="text-xs text-slate-400 mb-4">История съеденных блюд</p>
+
+                        <div id="mealList" class="space-y-3 max-h-96 overflow-y-auto pr-1">
+                            <!-- Items injected via JS -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- JavaScript App Logic -->
+    <script>
+        // State management
+        const defaultState = {
+            date: new Date().toISOString().split('T')[0],
+            water: { current: 0, goal: 2000 },
+            activities: [],
+            meals: [],
+            sleep: { hours: 0, quality: 'Не указано' },
+            mood: '😐 Спокойное',
+            energy: 5,
+            streak: 1
+        };
+
+        let appState = JSON.parse(localStorage.getItem('healthPulseState')) || defaultState;
+
+        // Verify if state belongs to today, if not reset daily dynamic counts but keep streak logic
+        const todayStr = new Date().toISOString().split('T')[0];
+        if (appState.date !== todayStr) {
+            appState.date = todayStr;
+            appState.water.current = 0;
+            appState.activities = [];
+            appState.meals = [];
+            appState.sleep = { hours: 0, quality: 'Не указано' };
+            appState.streak += 1;
+            saveState();
+        }
+
+        let mainChart = null;
+        let selectedMoodTemp = appState.mood;
+
+        // Motivating Quotes Array
+        const quotes = [
+            "Забота о здоровье — это не одноразовое действие, а ежедневная привычка.",
+            "Маленькие шаги каждый день ведут к большим изменениям в вашей жизни.",
+            "Твое тело — твой главный дом. Заботься о нем с любовью.",
+            "Качественный сон и чистая вода — лучшие лекарства от усталости.",
+            "Каждая тренировка делает тебя сильнее, чем вчера."
+        ];
+
+        // Init App on load
+        window.onload = function() {
+            lucide.createIcons();
+            initTheme();
+            updateDateDisplay();
+            setRandomQuote();
+            renderAll();
+        };
+
+        function saveState() {
+            localStorage.setItem('healthPulseState', JSON.stringify(appState));
+        }
+
+        // Navigation Tabs Controller
+        function switchTab(tabId) {
+            const sections = ['dashboard', 'water', 'activity', 'sleep', 'mood', 'nutrition'];
+            sections.forEach(id => {
+                const sec = document.getElementById(`section-${id}`);
+                if (sec) sec.classList.add('hidden');
+                
+                const navBtn = document.getElementById(`nav-${id}`);
+                if (navBtn) {
+                    navBtn.classList.remove('bg-emerald-50', 'text-emerald-600', 'dark:bg-emerald-950/50', 'dark:text-emerald-400');
+                    navBtn.classList.add('text-slate-600', 'dark:text-slate-400');
+                }
+            });
+
+            // Activate chosen section
+            const activeSec = document.getElementById(`section-${tabId}`);
+            if (activeSec) activeSec.classList.remove('hidden');
+
+            const activeBtn = document.getElementById(`nav-${tabId}`);
+            if (activeBtn) {
+                activeBtn.classList.add('bg-emerald-50', 'text-emerald-600', 'dark:bg-emerald-950/50', 'dark:text-emerald-400');
+                activeBtn.classList.remove('text-slate-600', 'dark:text-slate-400');
+            }
+
+            if (tabId === 'dashboard') {
+                setTimeout(renderChart, 100);
+            }
+        }
+
+        // Theme Toggle (Dark/Light)
+        function initTheme() {
+            const isDark = localStorage.getItem('theme') === 'dark' || 
+                (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches);
+            if (isDark) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        }
+
+        function toggleTheme() {
+            if (document.documentElement.classList.contains('dark')) {
+                document.documentElement.classList.remove('dark');
+                localStorage.setItem('theme', 'light');
+            } else {
+                document.documentElement.classList.add('dark');
+                localStorage.setItem('theme', 'dark');
+            }
+        }
+
+        document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+        document.getElementById('themeToggleMobile').addEventListener('click', toggleTheme);
+
+        // Date Display
+        function updateDateDisplay() {
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            const today = new Date().toLocaleDateString('ru-RU', options);
+            document.getElementById('currentDateDisplay').innerText = today;
+        }
+
+        function setRandomQuote() {
+            const q = quotes[Math.floor(Math.random() * quotes.length)];
+            document.getElementById('quoteText').innerText = `"${q}"`;
+        }
+
+        // RENDER ALL DATA
+        function renderAll() {
+            // Streak
+            document.getElementById('streakCount').innerText = appState.streak;
+
+            // Water
+            document.getElementById('dashWaterVal').innerText = `${appState.water.current} / ${appState.water.goal} мл`;
+            const waterPct = Math.min(100, Math.round((appState.water.current / appState.water.goal) * 100)) || 0;
+            document.getElementById('dashWaterPct').innerText = `${waterPct}%`;
+            document.getElementById('dashWaterBar').style.width = `${waterPct}%`;
+            
+            document.getElementById('waterCurrentText').innerText = appState.water.current;
+            document.getElementById('waterGoalText').innerText = `из ${appState.water.goal} мл`;
+            document.getElementById('waterGoalInput').value = appState.water.goal;
+
+            // Update Circle SVG
+            const circle = document.getElementById('waterSvgCircle');
+            if (circle) {
+                const circumference = 2 * Math.PI * 80; // r=80
+                const offset = circumference - (waterPct / 100) * circumference;
+                circle.style.strokeDasharray = `${circumference} ${circumference}`;
+                circle.style.strokeDashoffset = offset;
+            }
+
+            // Activity
+            const totalBurned = appState.activities.reduce((acc, item) => acc + item.calories, 0);
+            document.getElementById('dashBurnedVal').innerText = `${totalBurned} ккал`;
+            document.getElementById('dashActivityCount').innerText = `${appState.activities.length} тренировок`;
+            renderActivityList();
+
+            // Sleep
+            document.getElementById('dashSleepVal').innerText = `${appState.sleep.hours} ч`;
+            document.getElementById('dashSleepQuality').innerText = appState.sleep.quality;
+            document.getElementById('sleepDisplayVal').innerText = `${appState.sleep.hours} часов`;
+            document.getElementById('sleepQualityDisplay').innerText = `Качество: ${appState.sleep.quality}`;
+
+            // Mood & Energy
+            document.getElementById('dashMoodDisplay').innerText = appState.mood;
+            document.getElementById('dashEnergyVal').innerText = `${appState.energy}/10`;
+            document.getElementById('dashEnergyBar').style.width = `${appState.energy * 10}%`;
+
+            // Nutrition
+            const totalCaloriesIn = appState.meals.reduce((acc, item) => acc + item.calories, 0);
+            document.getElementById('dashCaloriesIn').innerText = `${totalCaloriesIn} ккал`;
+            const netCal = totalCaloriesIn - totalBurned;
+            document.getElementById('dashNetCalories').innerText = `Баланс: ${netCal > 0 ? '+' : ''}${netCal} ккал`;
+            renderMealList();
+
+            // Chart
+            renderChart();
+        }
+
+        // --- WATER LOGIC ---
+        function addWater(amount) {
+            appState.water.current += amount;
+            saveState();
+            renderAll();
+        }
+
+        function addCustomWater() {
+            const input = document.getElementById('customWaterInput');
+            const val = parseInt(input.value);
+            if (val && val > 0) {
+                addWater(val);
+                input.value = '';
+            }
+        }
+
+        function updateWaterGoal() {
+            const val = parseInt(document.getElementById('waterGoalInput').value);
+            if (val && val > 0) {
+                appState.water.goal = val;
+                saveState();
+                renderAll();
+            }
+        }
+
+        // --- ACTIVITY LOGIC ---
+        const calorieRates = {
+            Walking: 4,  // kcal per min
+            Running: 11,
+            Cycling: 8,
+            Gym: 6,
+            Yoga: 3,
+            Swimming: 9
+        };
+
+        const activityNames = {
+            Walking: 'Ходьба',
+            Running: 'Бег',
+            Cycling: 'Велосипед',
+            Gym: 'Силовая',
+            Yoga: 'Йога',
+            Swimming: 'Плавание'
+        };
+
+        function logActivity(e) {
+            e.preventDefault();
+            const type = document.getElementById('activityType').value;
+            const duration = parseInt(document.getElementById('activityDuration').value);
+            
+            if (type && duration > 0) {
+                const burned = (calorieRates[type] || 5) * duration;
+                const newAct = {
+                    id: Date.now(),
+                    type: type,
+                    typeName: activityNames[type] || type,
+                    duration: duration,
+                    calories: burned,
+                    time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                };
+                appState.activities.unshift(newAct);
+                saveState();
+                renderAll();
+                document.getElementById('activityForm').reset();
+            }
+        }
+
+        function deleteActivity(id) {
+            appState.activities = appState.activities.filter(a => a.id !== id);
+            saveState();
+            renderAll();
+        }
+
+        function renderActivityList() {
+            const container = document.getElementById('activityList');
+            if (appState.activities.length === 0) {
+                container.innerHTML = `<p class="text-xs text-slate-400 italic text-center py-6">Записей об активности сегодня еще нет</p>`;
+                return;
+            }
+
+            container.innerHTML = appState.activities.map(act => `
+                <div class="flex items-center justify-between p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
+                    <div class="flex items-center gap-3">
+                        <div class="p-2.5 rounded-lg bg-orange-100 dark:bg-orange-950/50 text-orange-500">
+                            <i data-lucide="activity" class="w-4 h-4"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-sm">${act.typeName}</h4>
+                            <span class="text-[11px] text-slate-400">${act.duration} мин • ${act.time}</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span class="text-sm font-bold text-orange-500">-${act.calories} ккал</span>
+                        <button onclick="deleteActivity(${act.id})" class="text-slate-400 hover:text-red-500 transition">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        // --- SLEEP LOGIC ---
+        function saveSleep(e) {
+            e.preventDefault();
+            const hours = parseFloat(document.getElementById('sleepHoursInput').value);
+            const qualityElem = document.querySelector('input[name="sleepQuality"]:checked');
+            const quality = qualityElem ? qualityElem.value : 'Хорошее';
+
+            if (!isNaN(hours)) {
+                appState.sleep = { hours, quality };
+                saveState();
+                renderAll();
+            }
+        }
+
+        // --- MOOD LOGIC ---
+        function selectMood(mood) {
+            selectedMoodTemp = mood;
+            const buttons = document.querySelectorAll('.mood-option');
+            buttons.forEach(btn => btn.classList.remove('border-emerald-500', 'bg-emerald-50', 'dark:bg-emerald-950/40'));
+            
+            // Highlight selected button intuitively
+            event.currentTarget.classList.add('border-emerald-500', 'bg-emerald-50', 'dark:bg-emerald-950/40');
+        }
+
+        function updateEnergySlider(val) {
+            document.getElementById('energyRangeVal').innerText = val;
+        }
+
+        function saveMoodAndEnergy() {
+            appState.mood = selectedMoodTemp;
+            appState.energy = parseInt(document.getElementById('energyRange').value);
+            saveState();
+            renderAll();
+        }
+
+        // --- NUTRITION LOGIC ---
+        function logMeal(e) {
+            e.preventDefault();
+            const type = document.getElementById('mealType').value;
+            const name = document.getElementById('mealName').value.trim();
+            const calories = parseInt(document.getElementById('mealCalories').value);
+
+            if (name && !isNaN(calories)) {
+                const meal = {
+                    id: Date.now(),
+                    type,
+                    name,
+                    calories,
+                    time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                };
+                appState.meals.unshift(meal);
+                saveState();
+                renderAll();
+                document.getElementById('mealName').value = '';
+                document.getElementById('mealCalories').value = '';
+            }
+        }
+
+        function deleteMeal(id) {
+            appState.meals = appState.meals.filter(m => m.id !== id);
+            saveState();
+            renderAll();
+        }
+
+        function renderMealList() {
+            const container = document.getElementById('mealList');
+            if (appState.meals.length === 0) {
+                container.innerHTML = `<p class="text-xs text-slate-400 italic text-center py-6">Записей о приемах пищи сегодня еще нет</p>`;
+                return;
+            }
+
+            container.innerHTML = appState.meals.map(meal => `
+                <div class="flex items-center justify-between p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
+                    <div class="flex items-center gap-3">
+                        <div class="p-2.5 rounded-lg bg-emerald-100 dark:bg-emerald-950/50 text-emerald-500 font-bold text-xs">
+                            ${meal.type[0]}
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-sm">${meal.name}</h4>
+                            <span class="text-[11px] text-slate-400">${meal.type} • ${meal.time}</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span class="text-sm font-bold text-emerald-500">+${meal.calories} ккал</span>
+                        <button onclick="deleteMeal(${meal.id})" class="text-slate-400 hover:text-red-500 transition">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        // --- CHART JS ANALYTICS ---
+        function renderChart() {
+            const ctx = document.getElementById('weeklyChart');
+            if (!ctx) return;
+
+            const chartType = document.getElementById('chartTypeSelect').value;
+
+            // Mock 7-day historic data combined with current state
+            const days = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+            
+            let dataValues = [];
+            let label = '';
+            let color = '';
+
+            if (chartType === 'water') {
+                label = 'Вода (мл)';
+                color = '#3b82f6';
+                dataValues = [1800, 1500, 2100, 1900, 2200, 1600, appState.water.current];
+            } else {
+                label = 'Сожжено калорий';
+                color = '#f97316';
+                const totalBurned = appState.activities.reduce((acc, item) => acc + item.calories, 0);
+                dataValues = [320, 450, 200, 500, 350, 600, totalBurned];
+            }
+
+            if (mainChart) {
+                mainChart.destroy();
+            }
+
+            mainChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: days,
+                    datasets: [{
+                        label: label,
+                        data: dataValues,
+                        borderColor: color,
+                        backgroundColor: color + '22',
+                        fill: true,
+                        tension: 0.4,
+                        borderWidth: 3,
+                        pointRadius: 4,
+                        pointHoverRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        x: {
+                            grid: { display: false },
+                            ticks: { color: '#94a3b8' }
+                        },
+                        y: {
+                            grid: { color: '#e2e8f015' },
+                            ticks: { color: '#94a3b8' }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Reset Data Function
+        function resetData() {
+            if (confirm('Вы уверены, что хотите сбросить все данные за сегодняшний день?')) {
+                appState.water.current = 0;
+                appState.activities = [];
+                appState.meals = [];
+                appState.sleep = { hours: 0, quality: 'Не указано' };
+                appState.mood = '😐 Спокойное';
+                appState.energy = 5;
+                saveState();
+                renderAll();
+            }
+        }
+    </script>
+</body>
+</html>
